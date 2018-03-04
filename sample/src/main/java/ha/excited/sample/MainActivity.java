@@ -11,16 +11,17 @@ import android.view.View;
 import android.widget.Toast;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+
+import static ha.excited.sample.AppUtils.fileCopy;
 
 public class MainActivity extends Activity {
 
     private static final String PATH = Environment.getExternalStorageDirectory().getPath();
     private static final String NEW_APK = PATH + File.separator + "fxftvoice2.03.apk";
-    String OUT_APK = PATH + File.separator + "out.apk";
+    private String OUT_APK = PATH + File.separator + "out.apk";//输出新的合并代码
+    private String OLD_APK = PATH + File.separator + "old.apk";//在设备中安装的应用
     private static final String PATCH_FILE = PATH + File.separator + "patch";
+    private static final String apkName="com.fxft.chemeitong";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,22 +42,24 @@ public class MainActivity extends Activity {
                 make();
             }
         });
-        ApplicationInfo info = AppUtils.getApplicationInfo(this, "com.fxft.chemeitong");
-//        OUT_APK=info.sourceDir;
-//        LogUtils.v("MainActivity", info.sourceDir);
+        ApplicationInfo info = AppUtils.getApplicationInfo(this, apkName);
+        LogUtils.v("MainActivity", info.sourceDir);
 
-//        try {
-//            boolean state = fileCopy(info.sourceDir, OUT_APK);
-//            LogUtils.v("MainActivity", state + " is ok");
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            LogUtils.v("MainActivity", " is not ok");
-//        }
+        try {
+            boolean state = fileCopy(info.sourceDir, OLD_APK);
+            LogUtils.v("MainActivity", state + " is ok");
+        } catch (Exception e) {
+            e.printStackTrace();
+            LogUtils.v("MainActivity", " is not ok");
+        }
 
     }
 
+    /**
+     * 生成差异包
+     */
     private void diff() {
-        ApplicationInfo info = AppUtils.getApplicationInfo(this, "com.fxft.chemeitong");
+        ApplicationInfo info = AppUtils.getApplicationInfo(this, apkName);
         if (PatchUtil.diff(info.sourceDir, NEW_APK, PATCH_FILE)) {
             Toast.makeText(this, getString(R.string.diff_done) + PATCH_FILE, Toast.LENGTH_SHORT).show();
         } else {
@@ -64,8 +67,11 @@ public class MainActivity extends Activity {
         }
     }
 
+    /**
+     * 使用旧的安装包与差异包合并为新的安装包
+     */
     private void make() {
-        ApplicationInfo info = AppUtils.getApplicationInfo(this, "com.fxft.chemeitong");
+        ApplicationInfo info = AppUtils.getApplicationInfo(this, apkName);
         if (PatchUtil.make(info.sourceDir, OUT_APK, PATCH_FILE)) {
             Toast.makeText(this, getString(R.string.make_done) + OUT_APK, Toast.LENGTH_SHORT).show();
             Log.v("MainActivity",OUT_APK);
@@ -76,28 +82,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    public static boolean fileCopy(String oldFilePath, String newFilePath) throws IOException {
-        //如果原文件不存在
-        if (fileExists(oldFilePath) == false) {
-            return false;
-        }
-        //获得原文件流
-        FileInputStream inputStream = new FileInputStream(new File(oldFilePath));
-        byte[] data = new byte[1024];
-        //输出流
-        FileOutputStream outputStream = new FileOutputStream(new File(newFilePath));
-        //开始处理流
-        while (inputStream.read(data) != -1) {
-            outputStream.write(data);
-        }
-        inputStream.close();
-        outputStream.close();
-        return true;
-    }
 
-    public static boolean fileExists(String filePath) {
-        File file = new File(filePath);
-        return file.exists();
-    }
 
 }
